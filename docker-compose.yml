@@ -2,8 +2,8 @@
 # docker-compose.yml  —  code-server homelab deployment
 # =============================================================================
 # Usage:
-#   cp .env.example .env        # edit at minimum: PASSWORD and TZ
-#   docker compose up -d --build
+#   cp .env.example .env        # edit at minimum: TZ
+#   docker compose up -d
 #   docker compose logs -f code-server
 # =============================================================================
 
@@ -12,22 +12,33 @@ services:
     # -------------------------------------------------------------------------
     # Image
     # -------------------------------------------------------------------------
-    # Option A (default): build the custom image from the local Dockerfile.
-    # Includes Node.js, PHP, Composer and a first-run extension installer.
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        CODE_SERVER_VERSION: ${CODE_SERVER_VERSION:-4.102.1}
-    image: homelab/code-server:${CODE_SERVER_VERSION:-4.102.1}
+    # Uses the official upstream image directly — no custom build needed.
+    # This saves ~1–1.5 GB of disk and eliminates build time entirely.
+    # entrypoint.sh and settings.json are mounted as volumes below.
+    image: ghcr.io/coder/code-server:${CODE_SERVER_VERSION:-4.102.1}
 
-    # Option B: skip the custom build and use the upstream image directly.
-    # Comment out the `build` + `image` lines above and uncomment below.
-    # No extra tools or extension auto-install; everything is vanilla.
-    # image: ghcr.io/coder/code-server:${CODE_SERVER_VERSION:-4.102.1}
+    # Option B: build the custom image (adds Node.js LTS, PHP 8, Composer).
+    # Use this if you need those runtimes available in the IDE terminal.
+    # Switch to this by uncommenting the block below and commenting out
+    # the `image:` line above.
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+    #   args:
+    #     CODE_SERVER_VERSION: ${CODE_SERVER_VERSION:-4.102.1}
+    # image: homelab/code-server:${CODE_SERVER_VERSION:-4.102.1}
 
     container_name: code-server
     restart: unless-stopped
+
+    # Run as root so code-server can read and write any file on the host.
+    # This is safe because the instance is behind Pangolin SSO and
+    # localhost-only — it is not directly exposed to the internet.
+    user: root
+
+    # Override the default entrypoint with our bootstrap script.
+    # This is what installs Copilot and seeds settings on first run.
+    entrypoint: ["/bin/bash", "/usr/local/bin/entrypoint.sh"]
 
     # -------------------------------------------------------------------------
     # Port mapping
@@ -53,8 +64,8 @@ services:
       # Public domain assigned by Pangolin (e.g. code.yourdomain.com).
       - PROXY_DOMAIN=${PROXY_DOMAIN:-}
 
-      # Workspace folder opened by default.
-      - DEFAULT_WORKSPACE=${DEFAULT_WORKSPACE:-/home/coder/projects}
+      # Workspace opened by default — set to /host to browse the whole server.
+      - DEFAULT_WORKSPACE=${DEFAULT_WORKSPACE:-/host}
 
       # Container timezone
       - TZ=${TZ:-UTC}
@@ -63,21 +74,21 @@ services:
     # Volumes
     # -------------------------------------------------------------------------
     volumes:
-      # code-server user data: settings, extensions, keybindings, snippets…
-      # entrypoint.sh seeds this on first run, then it persists across restarts.
+      # code-server user data: settings, extensions, keybindings…
       - ${DATA_DIR:-./data}/config:/home/coder/.local/share/code-server
 
-      # Your actual project files. Edit them here, they live on the host.
-      - ${DATA_DIR:-./data}/projects:/home/coder/projects
+      # Host filesystem — the entire server is accessible under /host.
+      # Use File > Open Folder and navigate to /host to reach any server path.
+      # Example: /host/home/youruser/projects/my-app
+      - /:/host
 
-      # -----------------------------------------------------------------------
-      # Docker socket — lets you run `docker` commands from inside code-server.
-      # Useful for managing your homelab containers from the IDE terminal.
-      #
-      # PERMISSION NOTE: The `coder` user (UID 1000) needs to be in the Docker
-      # group. Find your host's docker GID: stat -c '%g' /var/run/docker.sock
-      # Then add DOCKER_GID=<value> to .env and uncomment `group_add` below.
-      # -----------------------------------------------------------------------
+      # Bootstrap scripts and config — mounted read-only into the container.
+      - ./scripts/entrypoint.sh:/usr/local/bin/entrypoint.sh:ro
+      - ./config/settings.json:/etc/code-server/default-settings.json:ro
+
+      # Docker socket — lets you run `docker` commands from the IDE terminal.
+      # PERMISSION NOTE: running as root already grants socket access,
+      # so DOCKER_GID and group_add are not needed.
       - /var/run/docker.sock:/var/run/docker.sock
 
     # Uncomment and set DOCKER_GID in .env to grant the coder user Docker access:

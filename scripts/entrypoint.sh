@@ -8,7 +8,8 @@
 #   3. Install VS Code extensions on first run.
 #   4. Hand off execution to code-server with the correct CLI flags.
 #
-# This script runs as the `coder` user (UID 1000).
+# This script runs as root (see docker-compose.yml).
+# The host filesystem is mounted at /host and fully accessible.
 # =============================================================================
 
 set -euo pipefail
@@ -27,8 +28,7 @@ DEFAULT_SETTINGS_SRC="/etc/code-server/default-settings.json"
 # ---------------------------------------------------------------------------
 mkdir -p \
     "${DATA_DIR}/User" \
-    "${EXTENSIONS_DIR}" \
-    "${HOME}/projects"
+    "${EXTENSIONS_DIR}"
 
 # ---------------------------------------------------------------------------
 # 2. Copy default settings on first run

@@ -57,13 +57,13 @@ TZ=Europe/London
 
 Everything else has working defaults.
 
-### 3. Build and start
+### 3. Start
 
 ```bash
-docker compose up -d --build
+docker compose up -d
 ```
 
-The `--build` flag is only needed on the first run and after any change to the `Dockerfile`. After that, `docker compose up -d` is enough.
+No build step needed. Docker pulls the official `ghcr.io/coder/code-server` image (~500 MB) directly.
 
 > **First-run note:** `scripts/entrypoint.sh` installs all VS Code extensions into the persistent volume automatically. This takes 2–4 minutes. Follow progress with:
 >
@@ -80,21 +80,25 @@ Open **[http://localhost:8080](http://localhost:8080)** — no password prompt, 
 ## ⚙️ How It Works
 
 ```
-docker compose up --build
+docker compose up
        │
        ▼
-  Dockerfile builds the image
-  (adds Node.js LTS, PHP 8, Composer on top of the official code-server base)
+  Docker pulls ghcr.io/coder/code-server (~500 MB, no build step)
        │
        ▼
-  scripts/entrypoint.sh runs on every container start
+  scripts/entrypoint.sh is mounted read-only and runs on every start
        ├── Creates ./data/ subdirectories if the volume is empty
        ├── Seeds config/settings.json into the volume (first run only)
-       ├── Installs all VS Code extensions into the volume (first run only)
+       ├── Installs github.copilot + github.copilot-chat (first run only)
        └── exec code-server --bind-addr 0.0.0.0:8080 --auth none ...
 ```
 
-Extensions, settings, and your projects all live under `./data/` on the host and survive container restarts and image rebuilds completely intact.
+Extensions, settings, and your projects all live under `./data/` on the host
+and survive container restarts and image version upgrades completely intact.
+
+The `Dockerfile` is **not used by default**. It exists as an opt-in option if
+you need Node.js, PHP, and Composer available in the IDE terminal. See the
+[Custom image](#-custom-image-optional) section below.
 
 ---
 
@@ -116,6 +120,18 @@ All options are in `.env`:
 
 ---
 
+## 📦 Custom Image (optional)
+
+If you need **Node.js, PHP, or Composer** available in the IDE terminal, switch to the custom build. In `docker-compose.yml`, comment out the `image:` line and uncomment the `build:` block, then run:
+
+```bash
+docker compose up -d --build
+```
+
+The `Dockerfile` adds Node.js LTS (via NodeSource), PHP 8, and Composer on top of the official base. The resulting image is ~1.5–2 GB vs ~500 MB for the default. Only opt into this if you actually need those runtimes in the terminal.
+
+---
+
 ## ⬆️ Updating code-server
 
 ```bash
@@ -126,7 +142,9 @@ bash scripts/update.sh 4.200.0
 bash scripts/update.sh latest
 ```
 
-The script updates `CODE_SERVER_VERSION` in `.env`, rebuilds the image with `--no-cache`, and restarts the container. Your extensions and settings in `./data/` are untouched.
+The script updates `CODE_SERVER_VERSION` in `.env` and restarts the container.
+Because the official image is pulled directly, there is no rebuild step — Docker
+just pulls the new image tag. Your extensions and settings in `./data/` are untouched.
 
 Check all available versions: https://github.com/coder/code-server/releases
 
