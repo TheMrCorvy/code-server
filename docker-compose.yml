@@ -1,0 +1,128 @@
+# =============================================================================
+# docker-compose.yml  —  code-server homelab deployment
+# =============================================================================
+# Usage:
+#   cp .env.example .env        # edit at minimum: PASSWORD and TZ
+#   docker compose up -d --build
+#   docker compose logs -f code-server
+# =============================================================================
+
+services:
+  code-server:
+    # -------------------------------------------------------------------------
+    # Image
+    # -------------------------------------------------------------------------
+    # Option A (default): build the custom image from the local Dockerfile.
+    # Includes Node.js, PHP, Composer and a first-run extension installer.
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        CODE_SERVER_VERSION: ${CODE_SERVER_VERSION:-4.102.1}
+    image: homelab/code-server:${CODE_SERVER_VERSION:-4.102.1}
+
+    # Option B: skip the custom build and use the upstream image directly.
+    # Comment out the `build` + `image` lines above and uncomment below.
+    # No extra tools or extension auto-install; everything is vanilla.
+    # image: ghcr.io/coder/code-server:${CODE_SERVER_VERSION:-4.102.1}
+
+    container_name: code-server
+    restart: unless-stopped
+
+    # -------------------------------------------------------------------------
+    # Port mapping
+    # -------------------------------------------------------------------------
+    # Binds ONLY to localhost — Pangolin connects here and proxies to the world.
+    # Do NOT change 127.0.0.1 to 0.0.0.0 unless you have another firewall layer.
+    ports:
+      - "127.0.0.1:8080:8080"
+
+    # -------------------------------------------------------------------------
+    # Environment variables
+    # -------------------------------------------------------------------------
+    environment:
+      # Authentication mode.
+      # 'none'     → no login screen (safe when Pangolin SSO is in front)
+      # 'password' → enable built-in password prompt (set PASSWORD below too)
+      - AUTH=${AUTH:-none}
+
+      # Only used when AUTH=password
+      # - PASSWORD=${PASSWORD}
+      # - HASHED_PASSWORD=${HASHED_PASSWORD}
+
+      # Public domain assigned by Pangolin (e.g. code.yourdomain.com).
+      - PROXY_DOMAIN=${PROXY_DOMAIN:-}
+
+      # Workspace folder opened by default.
+      - DEFAULT_WORKSPACE=${DEFAULT_WORKSPACE:-/home/coder/projects}
+
+      # Container timezone
+      - TZ=${TZ:-UTC}
+
+    # -------------------------------------------------------------------------
+    # Volumes
+    # -------------------------------------------------------------------------
+    volumes:
+      # code-server user data: settings, extensions, keybindings, snippets…
+      # entrypoint.sh seeds this on first run, then it persists across restarts.
+      - ${DATA_DIR:-./data}/config:/home/coder/.local/share/code-server
+
+      # Your actual project files. Edit them here, they live on the host.
+      - ${DATA_DIR:-./data}/projects:/home/coder/projects
+
+      # -----------------------------------------------------------------------
+      # Docker socket — lets you run `docker` commands from inside code-server.
+      # Useful for managing your homelab containers from the IDE terminal.
+      #
+      # PERMISSION NOTE: The `coder` user (UID 1000) needs to be in the Docker
+      # group. Find your host's docker GID: stat -c '%g' /var/run/docker.sock
+      # Then add DOCKER_GID=<value> to .env and uncomment `group_add` below.
+      # -----------------------------------------------------------------------
+      - /var/run/docker.sock:/var/run/docker.sock
+
+    # Uncomment and set DOCKER_GID in .env to grant the coder user Docker access:
+    # group_add:
+    #   - "${DOCKER_GID}"
+
+    # -------------------------------------------------------------------------
+    # Working directory
+    # -------------------------------------------------------------------------
+    working_dir: /home/coder/projects
+
+    # -------------------------------------------------------------------------
+    # Resource limits
+    # -------------------------------------------------------------------------
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+
+    # -------------------------------------------------------------------------
+    # Health check
+    # -------------------------------------------------------------------------
+    # start_period is long to allow time for first-run extension installation.
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+    # -------------------------------------------------------------------------
+    # Logging
+    # -------------------------------------------------------------------------
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # -------------------------------------------------------------------------
+    # Security
+    # -------------------------------------------------------------------------
+    security_opt:
+      - no-new-privileges:true
