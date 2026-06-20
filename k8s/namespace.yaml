@@ -1,0 +1,10 @@
+# =============================================================================
+# k8s/namespace.yaml  —  Isolated namespace for code-server
+# =============================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: code-server
+  labels:
+    app.kubernetes.io/name: code-server
+    app.kubernetes.io/component: ide

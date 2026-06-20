@@ -1,0 +1,137 @@
+# =============================================================================
+# k8s/deployment.yaml  —  code-server Deployment
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: code-server
+  namespace: code-server
+  labels:
+    app.kubernetes.io/name: code-server
+    app.kubernetes.io/component: ide
+spec:
+  # Single replica — code-server is a single-user IDE.
+  # Scaling to >1 requires shared storage (e.g. ReadWriteMany via NFS/Longhorn).
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: code-server
+  strategy:
+    type: Recreate   # Recreate avoids concurrent access to RWO volumes
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: code-server
+        app.kubernetes.io/component: ide
+    spec:
+      # -----------------------------------------------------------------------
+      # Security context — runs as non-root user (UID 1000 = coder)
+      # -----------------------------------------------------------------------
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        runAsNonRoot: true
+
+      containers:
+        - name: code-server
+          # -------------------------------------------------------------------
+          # Image
+          # -------------------------------------------------------------------
+          # Push your custom image to a registry reachable by the cluster.
+          # Example using a local registry:
+          #   docker tag homelab/code-server:4.102.1 <registry-ip>:5000/code-server:4.102.1
+          #   docker push <registry-ip>:5000/code-server:4.102.1
+          # Then reference it here. Update the tag when running ./update.sh.
+          image: homelab/code-server:4.102.1   # ← update tag when upgrading
+          imagePullPolicy: IfNotPresent
+
+          # Option B: Official upstream image (no extra tools/extensions)
+          # image: ghcr.io/coder/code-server:4.102.1
+          # imagePullPolicy: Always
+
+          # -------------------------------------------------------------------
+          # Ports
+          # -------------------------------------------------------------------
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+
+          # -------------------------------------------------------------------
+          # Environment variables
+          # -------------------------------------------------------------------
+          # NOTE: BIND_ADDR is NOT passed here — entrypoint.sh passes
+          # --bind-addr 0.0.0.0:8080 directly to code-server.
+          env:
+            - name: PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: code-server-secret
+                  key: PASSWORD
+            - name: DEFAULT_WORKSPACE
+              value: "/home/coder/projects"
+            - name: TZ
+              value: "America/Argentina/Buenos_Aires"
+            # Uncomment if behind an ingress with a custom domain:
+            # - name: PROXY_DOMAIN
+            #   value: "code.yourdomain.com"
+
+          # -------------------------------------------------------------------
+          # Volume mounts
+          # -------------------------------------------------------------------
+          volumeMounts:
+            - name: config
+              mountPath: /home/coder/.local/share/code-server
+            - name: projects
+              mountPath: /home/coder/projects
+
+          # -------------------------------------------------------------------
+          # Resource limits
+          # -------------------------------------------------------------------
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "2000m"
+              memory: "2Gi"
+
+          # -------------------------------------------------------------------
+          # Health probes
+          # -------------------------------------------------------------------
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+
+          # -------------------------------------------------------------------
+          # Security context for the container
+          # -------------------------------------------------------------------
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false   # code-server writes temp files
+            capabilities:
+              drop: ["ALL"]
+
+      # -----------------------------------------------------------------------
+      # Volumes
+      # -----------------------------------------------------------------------
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: code-server-config
+        - name: projects
+          persistentVolumeClaim:
+            claimName: code-server-projects

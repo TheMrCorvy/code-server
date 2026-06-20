@@ -1,0 +1,13 @@
+# =============================================================================
+# Kubernetes manifests for code-server homelab deployment
+# =============================================================================
+# Organized into individual files under k8s/ for clarity.
+# Apply all at once:  kubectl apply -k k8s/
+# Or individually:    kubectl apply -f k8s/<file>.yaml
+#
+# Prerequisites:
+#   - A running Kubernetes cluster (k3s, kubeadm, etc.)
+#   - kubectl configured to point to your cluster
+#   - A StorageClass available (e.g., local-path, longhorn)
+#   - (Optional) An Ingress controller for external access
+# =============================================================================

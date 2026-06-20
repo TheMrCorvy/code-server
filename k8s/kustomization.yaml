@@ -1,0 +1,22 @@
+# =============================================================================
+# k8s/kustomization.yaml  —  Kustomize entry point
+# =============================================================================
+# Apply everything:  kubectl apply -k k8s/
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: code-server
+
+resources:
+  - namespace.yaml
+  - secret.yaml
+  - pvc.yaml
+  - deployment.yaml
+  - service.yaml
+  # Uncomment the line below once you have configured ingress.yaml
+  # - ingress.yaml
+
+commonLabels:
+  app.kubernetes.io/managed-by: kustomize
+  app.kubernetes.io/part-of: homelab

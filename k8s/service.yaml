@@ -1,0 +1,23 @@
+# =============================================================================
+# k8s/service.yaml  —  ClusterIP Service for code-server
+# =============================================================================
+# Exposes code-server internally within the cluster.
+# An Ingress (see ingress.yaml) or NodePort can then route external traffic.
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: code-server
+  namespace: code-server
+  labels:
+    app.kubernetes.io/name: code-server
+    app.kubernetes.io/component: ide
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: code-server
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP

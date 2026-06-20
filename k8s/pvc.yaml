@@ -1,0 +1,49 @@
+# =============================================================================
+# k8s/pvc.yaml  —  Persistent storage for code-server
+# =============================================================================
+# Two PVCs:
+#   1. code-server-config  — VS Code settings, extensions, user data
+#   2. code-server-projects — your project files (the workspace)
+#
+# Adjust `storageClassName` to match your cluster's available StorageClass.
+# Common homelab options:
+#   - local-path  (k3s default, single-node)
+#   - longhorn    (multi-node, HA)
+#   - nfs         (NFS-provisioner)
+# =============================================================================
+
+# --- Config / Settings volume ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: code-server-config
+  namespace: code-server
+  labels:
+    app.kubernetes.io/name: code-server
+    app.kubernetes.io/component: config
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path   # ← change if needed
+  resources:
+    requests:
+      storage: 5Gi
+
+---
+
+# --- Projects / Workspace volume ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: code-server-projects
+  namespace: code-server
+  labels:
+    app.kubernetes.io/name: code-server
+    app.kubernetes.io/component: projects
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path   # ← change if needed
+  resources:
+    requests:
+      storage: 20Gi
