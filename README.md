@@ -148,23 +148,12 @@ Copilot is installed automatically on first run. Because code-server runs in a b
 
 ## 🧩 Pre-installed Extensions
 
-Installed automatically on first run by `scripts/entrypoint.sh`:
+Only the two extensions required for GitHub Copilot are installed automatically on first run:
 
-| Extension                                | Purpose                   |
-| ---------------------------------------- | ------------------------- |
-| `github.copilot` + `github.copilot-chat` | AI code completion & chat |
-| `github.vscode-pull-request-github`      | GitHub PRs & Issues       |
-| `github.vscode-github-actions`           | GitHub Actions editor     |
-| `github.github-vscode-theme`             | GitHub Dark theme         |
-| `eamodio.gitlens`                        | Git history & blame       |
-| `esbenp.prettier-vscode`                 | Code formatter            |
-| `dbaeumer.vscode-eslint`                 | JS/TS linting             |
-| `bmewburn.vscode-intelephense-client`    | PHP IntelliSense          |
-| `ms-azuretools.vscode-docker`            | Docker management UI      |
-| `pkief.material-icon-theme`              | File icons                |
-| `christian-kohler.path-intellisense`     | Path autocomplete         |
-| `formulahendry.auto-rename-tag`          | HTML tag renaming         |
-| `ritwickdey.liveserver`                  | Live preview server       |
+- `github.copilot` — AI code completion
+- `github.copilot-chat` — AI chat assistant
+
+Any additional extensions can be installed manually from the Extensions panel inside code-server.
 
 To add extensions, edit the `EXTENSIONS` array in `scripts/entrypoint.sh`. To force a reinstall of all extensions, delete the sentinel file and restart:
 

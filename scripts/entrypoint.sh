@@ -49,25 +49,6 @@ if [ ! -f "${SENTINEL}" ]; then
     echo "[entrypoint] This may take a few minutes. Grab a coffee ☕"
 
     EXTENSIONS=(
-        # Docker management
-        "ms-azuretools.vscode-docker"
-        # Git tooling
-        "eamodio.gitlens"
-        "github.vscode-pull-request-github"
-        "github.vscode-github-actions"
-        # Formatting & linting
-        "esbenp.prettier-vscode"
-        "dbaeumer.vscode-eslint"
-        # PHP
-        "bmewburn.vscode-intelephense-client"
-        # General helpers
-        "christian-kohler.path-intellisense"
-        "formulahendry.auto-rename-tag"
-        "ritwickdey.liveserver"
-        # Themes
-        "pkief.material-icon-theme"
-        "github.github-vscode-theme"
-        # GitHub Copilot — requires auth after first launch (see README.md)
         "github.copilot"
         "github.copilot-chat"
     )
