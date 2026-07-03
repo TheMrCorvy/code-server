@@ -29,9 +29,24 @@
   "workbench.editor.enablePreview": false,
 
   // --- Terminal ---
+  // Default profile: SSHs directly into the real host machine.
+  // Every new terminal tab gives you a native shell (macOS zsh / Ubuntu bash)
+  // with access to brew, node, php, agy, claude — all your real tools.
+  // Switch to 'bash (container)' from the terminal dropdown if you need
+  // to run something inside the container itself.
   "terminal.integrated.fontSize": 13,
   "terminal.integrated.cursorBlinking": true,
-  "terminal.integrated.defaultProfile.linux": "bash",
+  "terminal.integrated.defaultProfile.linux": "SSH → Host",
+  "terminal.integrated.profiles.linux": {
+    "SSH → Host": {
+      "path": "/usr/local/bin/ssh-to-host",
+      "icon": "remote-explorer"
+    },
+    "bash (container)": {
+      "path": "/bin/bash",
+      "icon": "terminal-bash"
+    }
+  },
 
   // --- Files ---
   "files.autoSave": "afterDelay",
