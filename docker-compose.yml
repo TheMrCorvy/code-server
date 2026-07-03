@@ -70,6 +70,21 @@ services:
       # Container timezone
       - TZ=${TZ:-UTC}
 
+      # -----------------------------------------------------------------------
+      # SSH → Host configuration
+      # -----------------------------------------------------------------------
+      # Username on the real host machine (macOS or Ubuntu).
+      - SSH_USER=${SSH_USER:-}
+
+      # Hostname the container uses to reach the real host machine.
+      # host.docker.internal resolves to the host on both OrbStack and Linux
+      # (Linux requires the extra_hosts entry below — already included).
+      # OrbStack users can alternatively use host.orb.internal.
+      - SSH_HOST=${SSH_HOST:-host.docker.internal}
+
+      # SSH port on the host machine (almost always 22).
+      - SSH_PORT=${SSH_PORT:-22}
+
     # -------------------------------------------------------------------------
     # Volumes
     # -------------------------------------------------------------------------
@@ -84,12 +99,18 @@ services:
 
       # Bootstrap scripts and config — mounted read-only into the container.
       - ./scripts/entrypoint.sh:/usr/local/bin/entrypoint.sh:ro
+      - ./scripts/ssh-to-host.sh:/usr/local/bin/ssh-to-host:ro
       - ./config/settings.json:/etc/code-server/default-settings.json:ro
 
       # Docker socket — lets you run `docker` commands from the IDE terminal.
       # PERMISSION NOTE: running as root already grants socket access,
       # so DOCKER_GID and group_add are not needed.
       - /var/run/docker.sock:/var/run/docker.sock
+
+      # SSH private key for host access.
+      # Generate a dedicated key pair — see docs/ssh-setup-guide.md.
+      # The public key must be added to ~/.ssh/authorized_keys on the host.
+      - ./secrets/ssh_host_key:/home/coder/.ssh/id_ed25519:ro
 
     # Uncomment and set DOCKER_GID in .env to grant the coder user Docker access:
     # group_add:
@@ -143,3 +164,11 @@ services:
     # -------------------------------------------------------------------------
     security_opt:
       - no-new-privileges:true
+
+    # -------------------------------------------------------------------------
+    # Host resolution (Linux Docker compatibility)
+    # -------------------------------------------------------------------------
+    # Makes host.docker.internal resolve to the real host machine on Linux.
+    # On macOS (OrbStack / Docker Desktop) this is automatic; harmless there.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
