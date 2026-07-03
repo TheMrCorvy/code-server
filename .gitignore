@@ -6,7 +6,11 @@
 .env
 *.env.local
 *.env.production
-secrets/
+secrets/ssh_host_key
+secrets/ssh_host_key.pub
+secrets/id_*
+secrets/*.pem
+secrets/*.key
 
 # ---- Docker data volumes (mounted from host) --------------------------------
 data/
