@@ -52,8 +52,11 @@ mkdir -p "${SSH_DIR}" "${ROOT_SSH_DIR}"
 chmod 700 "${SSH_DIR}" "${ROOT_SSH_DIR}"
 
 if [ -f "${SSH_KEY}" ]; then
-    chmod 600 "${SSH_KEY}"
-    echo "[entrypoint] SSH key found — permissions set (600)."
+    # The key is mounted :ro — chmod will always fail with EROFS inside the
+    # container. The host file's permissions (600) are inherited as-is, which
+    # is exactly what SSH requires. Suppress the error so startup isn't aborted.
+    chmod 600 "${SSH_KEY}" 2>/dev/null || true
+    echo "[entrypoint] SSH key found — host permissions apply (ensure host file is chmod 600)."
 else
     echo "[entrypoint] WARNING: SSH key not found at ${SSH_KEY}."
     echo "[entrypoint]          Follow docs/ssh-setup-guide.md to generate"
