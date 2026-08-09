@@ -111,9 +111,18 @@ if [ ! -f "${SENTINEL}" ]; then
     echo "[entrypoint] First run — installing VS Code extensions..."
     echo "[entrypoint] This may take a few minutes. Grab a coffee ☕"
 
+    # NOTE: github.copilot and github.copilot-chat are proprietary Microsoft
+    # extensions — they are NOT on Open VSX Registry (code-server's default
+    # marketplace) and will always fail to auto-install here.
+    # Install them manually via the Extensions panel:
+    #   1. Open code-server in the browser
+    #   2. Extensions panel → "..." menu → "Install from VSIX…"
+    #   3. Or search directly — Copilot appears in the built-in marketplace
+    #      once you are signed in via the Accounts menu (⇧⌘P → "Sign in").
     EXTENSIONS=(
-        "github.copilot"
-        "github.copilot-chat"
+        # Add Open VSX-compatible extension IDs here, e.g.:
+        # "esbenp.prettier-vscode"
+        # "dbaeumer.vscode-eslint"
     )
 
     for ext in "${EXTENSIONS[@]}"; do
