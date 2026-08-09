@@ -81,10 +81,23 @@ done
 
 echo "[entrypoint] SSH client config written."
 
-# Make the ssh-to-host script executable (it is mounted :ro so we can't chmod
-# the mount itself, but the container sees it as executable if we set the bit
-# on the source file — this chmod is a no-op safety net).
-chmod +x /usr/local/bin/ssh-to-host 2>/dev/null || true
+# Warn early if SSH_USER is not configured — the terminal will fail silently
+# otherwise and the user will see only a "permission denied" or "invalid user".
+if [ -z "${SSH_USER:-}" ]; then
+    echo "[entrypoint] WARNING: SSH_USER is not set in .env."
+    echo "[entrypoint]          Open .env and set SSH_USER=<your macOS username>"
+    echo "[entrypoint]          then restart: docker compose restart code-server"
+fi
+
+# ssh-to-host is mounted :ro — chmod on a read-only bind-mount is rejected by
+# the kernel (EROFS) even when running as root.  Copy to a writable location so
+# it is always executable regardless of the git-committed file mode.
+if [ -f "/usr/local/bin/ssh-to-host" ]; then
+    cp /usr/local/bin/ssh-to-host /usr/local/bin/ssh-to-host.run
+    chmod +x /usr/local/bin/ssh-to-host.run
+    # Atomically replace the symlink target so code-server profiles still work.
+    ln -sf /usr/local/bin/ssh-to-host.run /usr/local/bin/ssh-to-host-exec
+fi
 
 # ---------------------------------------------------------------------------
 # 4. Install extensions on first run
@@ -128,4 +141,4 @@ exec code-server \
     --auth "${AUTH:-none}" \
     --user-data-dir "${DATA_DIR}" \
     --extensions-dir "${EXTENSIONS_DIR}" \
-    "${DEFAULT_WORKSPACE:-/home/coder/projects}"
+    "${DEFAULT_WORKSPACE:-/host/Users/${SSH_USER}/Desktop/www}"

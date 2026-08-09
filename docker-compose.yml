@@ -64,8 +64,9 @@ services:
       # Public domain assigned by Pangolin (e.g. code.yourdomain.com).
       - PROXY_DOMAIN=${PROXY_DOMAIN:-}
 
-      # Workspace opened by default — set to /host to browse the whole server.
-      - DEFAULT_WORKSPACE=${DEFAULT_WORKSPACE:-/host}
+      # Default workspace — derived from SSH_USER so you only set your username once.
+      # Maps to ~/Desktop/www on the Mac Mini host via the /:/host volume mount.
+      - DEFAULT_WORKSPACE=/host/Users/${SSH_USER}/Desktop/www
 
       # Container timezone
       - TZ=${TZ:-UTC}
@@ -116,10 +117,9 @@ services:
     # group_add:
     #   - "${DOCKER_GID}"
 
-    # -------------------------------------------------------------------------
-    # Working directory
-    # -------------------------------------------------------------------------
-    working_dir: /home/coder/projects
+    # All three anchors (working_dir, DEFAULT_WORKSPACE, code-server open folder)
+    # point at the same place: ~/Desktop/www on the Mac Mini host.
+    working_dir: /host/Users/${SSH_USER}/Desktop/www
 
     # -------------------------------------------------------------------------
     # Resource limits

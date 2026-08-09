@@ -39,7 +39,7 @@
   "terminal.integrated.defaultProfile.linux": "SSH → Host",
   "terminal.integrated.profiles.linux": {
     "SSH → Host": {
-      "path": "/usr/local/bin/ssh-to-host",
+      "path": "/usr/local/bin/ssh-to-host-exec",
       "icon": "remote-explorer"
     },
     "bash (container)": {
